@@ -5,27 +5,57 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>HRMN Lint Checker Prototype</title>
   <style>
-    body { font-family: sans-serif; padding: 1rem; max-width: 900px; margin: auto; }
-    textarea { width: 100%; height: 200px; font-family: monospace; margin-bottom: 1rem; }
-    pre, .output-wrapper { background: #f4f4f4; padding: 1rem; white-space: pre-wrap; border: 1px solid #ccc; border-radius: 4px; user-select: text; }
+    body {
+      font-family: sans-serif;
+      padding: 2rem;
+      max-width: 900px;
+      margin: auto;
+    }
+
+    textarea {
+      width: 100%;
+      height: 200px;
+      font-family: monospace;
+      margin-bottom: 1rem;
+    }
+
+    pre, .output-wrapper {
+      background: #f4f4f4;
+      padding: 1rem;
+      white-space: pre-wrap;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      user-select: text;
+    }
+
     .error { color: red; font-weight: bold; }
     .valid { color: green; }
     .info { color: #555; }
     .warn { color: orange; }
-    button { margin-right: 1rem; padding: 0.5rem 1rem; font-size: 1rem; }
+    button {
+      margin: 0.25rem 0.5rem 1rem 0;
+      padding: 0.5rem 1rem;
+      font-size: 1rem;
+    }
   </style>
 </head>
 <body>
   <h2>Human-Readable Math Notation Linter</h2>
-  
+
   <textarea id="input" placeholder="Enter HRMN text here..."></textarea>
   <div>
-    <button onclick="lintText()">Check Format</button>
+    <button onclick="lintText()">✅ Check Format</button>
+    <button onclick="copyAllToClipboard()">📋 Copy All to Clipboard</button>
     <button onclick="downloadAll()">⬇️ Download All Text</button>
   </div>
-  
-  <h3>Lint Output</h3>
-  <div id="output" class="output-wrapper"></div>
+
+  <div id="copyArea">
+    <h3>📄 Formula Text</h3>
+    <pre id="formulaBlock" class="output-wrapper"></pre>
+
+    <h3>🧠 Lint Output</h3>
+    <div id="output" class="output-wrapper"></div>
+  </div>
 
   <script>
     const defaultText = `# Theme: Nuclear Waste Storage
@@ -64,10 +94,13 @@ Formula: Emissions = Energy × Intensity`;
 
     window.onload = () => {
       document.getElementById("input").value = defaultText;
+      lintText(); // auto-lint on load
     };
 
     function lintText() {
       const text = document.getElementById("input").value;
+      document.getElementById("formulaBlock").textContent = text;
+
       const lines = text.split(/\n/);
       const output = [];
       const definedVars = new Set();
@@ -84,7 +117,7 @@ Formula: Emissions = Energy × Intensity`;
           blockCount++;
           output.push(`<span class="info">[${lineNum}] --- block separator detected.</span>`);
         } else if (trimmed === "") {
-          // ignore empty
+          // skip empty
         } else if (trimmed.includes("=")) {
           const parts = trimmed.split("=");
           const lhs = parts[0]?.trim();
@@ -131,11 +164,23 @@ Formula: Emissions = Energy × Intensity`;
       document.getElementById("output").innerHTML = output.join("\n");
     }
 
-    function downloadAll() {
-      const formulaText = document.getElementById("input").value;
-      const lintText = document.getElementById("output").innerText;
+    function copyAllToClipboard() {
+      const formula = document.getElementById("formulaBlock").textContent;
+      const output = document.getElementById("output").innerText;
 
-      const blob = new Blob([`=== Formula ===\n\n${formulaText}\n\n=== Lint Log ===\n\n${lintText}`], { type: "text/plain" });
+      const combined = `=== Formula Text ===\n\n${formula}\n\n=== Lint Output ===\n\n${output}`;
+      navigator.clipboard.writeText(combined).then(() => {
+        alert("✅ Full content copied to clipboard.");
+      }).catch(err => {
+        alert("❌ Failed to copy: " + err);
+      });
+    }
+
+    function downloadAll() {
+      const formula = document.getElementById("formulaBlock").textContent;
+      const output = document.getElementById("output").innerText;
+
+      const blob = new Blob([`=== Formula Text ===\n\n${formula}\n\n=== Lint Output ===\n\n${output}`], { type: "text/plain" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
