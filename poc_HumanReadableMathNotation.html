@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>HRMN Lint Checker Prototype</title>
+  <style>
+    body { font-family: sans-serif; padding: 1rem; }
+    textarea { width: 100%; height: 200px; font-family: monospace; margin-bottom: 1rem; }
+    pre { background: #f4f4f4; padding: 1rem; white-space: pre-wrap; border: 1px solid #ccc; border-radius: 4px; }
+    .error { color: red; font-weight: bold; }
+    .valid { color: green; }
+    .info { color: #555; }
+    .warn { color: orange; }
+  </style>
+</head>
+<body>
+  <h2>Human-Readable Math Notation Linter</h2>
+  <textarea id="input" placeholder="Enter HRMN text here..."></textarea>
+  <button onclick="lintText()">Check Format</button>
+  <pre id="output"></pre>
+
+  <script>
+    function lintText() {
+      const text = document.getElementById("input").value;
+      const lines = text.split(/\n/);
+      const output = [];
+      const definedVars = new Set();
+      let blockCount = 0;
+      let validCount = 0;
+      let malformedCount = 0;
+
+      const variableRegex = /^[a-zA-Z_][a-zA-Z0-9_]*$/;
+
+      lines.forEach((line, idx) => {
+        const trimmed = line.trim();
+        const lineNum = `Line ${idx + 1}`;
+
+        if (trimmed === "---") {
+          blockCount++;
+          output.push(`<span class="info">[${lineNum}] --- block separator detected.</span>`);
+        } else if (trimmed === "") {
+          // ignore empty
+        } else if (trimmed.includes("=")) {
+          const parts = trimmed.split("=");
+          const lhs = parts[0]?.trim();
+          const rhs = parts[1]?.trim();
+
+          if (parts.length !== 2 || lhs === "" || rhs === "") {
+            malformedCount++;
+            output.push(`<span class="error">[${lineNum}] ⚠️ Malformed equation:</span> ${line}`);
+          } else {
+            let msg = `<span class="valid">[${lineNum}] ✅ Equation detected:</span> ${line}`;
+
+            if (!variableRegex.test(lhs)) {
+              msg += ` <span class="warn">⚠️ Invalid variable name: "${lhs}"</span>`;
+            }
+
+            if (definedVars.has(lhs)) {
+              msg += ` <span class="warn">⚠️ Duplicate definition of "${lhs}"</span>`;
+            } else {
+              definedVars.add(lhs);
+            }
+
+            validCount++;
+            output.push(msg);
+          }
+        } else if (trimmed.startsWith("#")) {
+          output.push(`<span class="info">[${lineNum}] 📝 Header:</span> ${line}`);
+        } else {
+          output.push(`<span class="info">[${lineNum}] ℹ️ Note or description:</span> ${line}`);
+        }
+      });
+
+      // Summary & final checks
+      if (blockCount === 0) {
+        output.push(`<span class="warn">❗ Warning: No block separators ('---') found.</span>`);
+      } else if (blockCount >= 3) {
+        output.push(`<span class="valid">✅ Theme-level separation detected.</span>`);
+      }
+
+      output.push(`<br><strong>Summary:</strong>`);
+      output.push(`✅ Valid equations: ${validCount}`);
+      output.push(`❌ Malformed equations: ${malformedCount}`);
+      output.push(`📦 Total blocks: ${blockCount}`);
+
+      document.getElementById("output").innerHTML = output.join("\n");
+    }
+  </script>
+</body>
+</html>
